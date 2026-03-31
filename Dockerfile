@@ -8,6 +8,7 @@ COPY Flowmetry.API/Flowmetry.API.csproj Flowmetry.API/
 COPY Flowmetry.Application/Flowmetry.Application.csproj Flowmetry.Application/
 COPY Flowmetry.Infrastructure/Flowmetry.Infrastructure.csproj Flowmetry.Infrastructure/
 COPY Flowmetry.Domain/Flowmetry.Domain.csproj Flowmetry.Domain/
+COPY Flowmetry.API.Tests/Flowmetry.API.Tests.csproj Flowmetry.API.Tests/
 
 # Restore dependencies
 RUN dotnet restore
