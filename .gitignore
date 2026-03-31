@@ -199,3 +199,6 @@ FodyWeavers.xsd
 # User secrets (keep out of source control)
 secrets.json
 appsettings.Development.json
+
+# Local dev secrets — never commit credentials
+**/Properties/launchSettings.json

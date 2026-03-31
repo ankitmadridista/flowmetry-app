@@ -1,0 +1,27 @@
+name: CI
+
+on: push
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore
+        working-directory: flowmetry-app
+
+      - name: Build
+        run: dotnet build --no-restore
+        working-directory: flowmetry-app
+
+      - name: Test
+        run: dotnet test --no-build
+        working-directory: flowmetry-app
