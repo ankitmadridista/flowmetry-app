@@ -33,7 +33,6 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.UseHttpsRedirection();
 app.UseCors("AllowUI");
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
