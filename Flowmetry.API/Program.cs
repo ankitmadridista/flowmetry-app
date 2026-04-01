@@ -3,7 +3,8 @@ using Flowmetry.Infrastructure;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddOpenApi();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 // Configure CORS
 var corsOrigins = new List<string> { "http://localhost:5173" };
@@ -28,10 +29,12 @@ builder.Services.AddInfrastructure(builder.Configuration);
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.MapOpenApi();
-}
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Flowmetry API v1");
+    c.EnableTryItOutByDefault();
+});
 
 app.UseCors("AllowUI");
 
