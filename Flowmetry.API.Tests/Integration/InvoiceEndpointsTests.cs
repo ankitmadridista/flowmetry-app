@@ -278,6 +278,39 @@ public class InvoiceEndpointsTests : IClassFixture<CustomWebApplicationFactory>
         Assert.True(json.GetArrayLength() >= 1);
     }
 
+    // ── 12.5: Multi-payment cumulative status ────────────────────────────────
+
+    [Fact]
+    public async Task PostPayment_MultiplePartialPaymentsSummingToFull_StatusIsPaid()
+    {
+        // Create a $300 invoice and send it
+        var invoiceId = await CreateSentInvoiceAsync(300m);
+
+        // POST first $150 payment
+        var firstPaymentResponse = await _client.PostAsJsonAsync(
+            $"/api/invoices/{invoiceId}/payments",
+            new { amount = 150m });
+        Assert.Equal(HttpStatusCode.OK, firstPaymentResponse.StatusCode);
+
+        // Assert intermediate state: status should be PartiallyPaid
+        var midResponse = await _client.GetAsync($"/api/invoices/{invoiceId}");
+        Assert.Equal(HttpStatusCode.OK, midResponse.StatusCode);
+        var midJson = await midResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("PartiallyPaid", midJson.GetProperty("status").GetString());
+
+        // POST second $150 payment
+        var secondPaymentResponse = await _client.PostAsJsonAsync(
+            $"/api/invoices/{invoiceId}/payments",
+            new { amount = 150m });
+        Assert.Equal(HttpStatusCode.OK, secondPaymentResponse.StatusCode);
+
+        // Assert final state: status should be Paid
+        var finalResponse = await _client.GetAsync($"/api/invoices/{invoiceId}");
+        Assert.Equal(HttpStatusCode.OK, finalResponse.StatusCode);
+        var finalJson = await finalResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("Paid", finalJson.GetProperty("status").GetString());
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private async Task<Guid> CreateInvoiceAsync(decimal amount)

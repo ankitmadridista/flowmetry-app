@@ -10,7 +10,7 @@ public class RecordPaymentCommandHandler(IInvoiceRepository repository)
 {
     public async Task<Result<Unit>> Handle(RecordPaymentCommand request, CancellationToken cancellationToken)
     {
-        var invoice = await repository.GetByIdAsync(request.InvoiceId, cancellationToken);
+        var invoice = await repository.GetByIdWithPaymentsAsync(request.InvoiceId, cancellationToken);
         if (invoice is null)
             return new Result<Unit>.NotFound($"Invoice '{request.InvoiceId}' not found.");
 
