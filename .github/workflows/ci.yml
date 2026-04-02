@@ -16,12 +16,9 @@ jobs:
 
       - name: Restore dependencies
         run: dotnet restore
-        working-directory: flowmetry-app
 
       - name: Build
         run: dotnet build --no-restore
-        working-directory: flowmetry-app
 
       - name: Test
         run: dotnet test --no-build
-        working-directory: flowmetry-app

@@ -202,3 +202,12 @@ appsettings.Development.json
 
 # Local dev secrets — never commit credentials
 **/Properties/launchSettings.json
+
+# CsCheck property-test cache
+.cscheck/
+
+# Visual Studio HTTP client files
+*.http
+
+# VS project user settings
+*.csproj.user

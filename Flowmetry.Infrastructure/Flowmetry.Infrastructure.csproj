@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Flowmetry.Domain\Flowmetry.Domain.csproj" />
+    <ProjectReference Include="..\Flowmetry.Application\Flowmetry.Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>
