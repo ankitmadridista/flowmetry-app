@@ -1,8 +1,12 @@
 using Flowmetry.Application.Invoices;
+using Flowmetry.Application.Invoices.Services;
+using Flowmetry.Infrastructure.Events;
+using Flowmetry.Infrastructure.Events.Stubs;
 using Flowmetry.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Flowmetry.Infrastructure;
 
@@ -20,10 +24,22 @@ public static class ServiceCollectionExtensions
 
         var connectionString = ConvertToNpgsqlConnectionString(rawUrl);
 
-        services.AddDbContext<FlowmetryDbContext>(options =>
-            options.UseNpgsql(connectionString));
+        services.Configure<ReminderOptions>(configuration.GetSection(ReminderOptions.SectionName));
+
+        services.AddDbContext<FlowmetryDbContext>((sp, options) =>
+        {
+            options.UseNpgsql(connectionString);
+            options.AddInterceptors(
+                new DomainEventDispatchInterceptor(
+                    sp.GetRequiredService<IServiceScopeFactory>(),
+                    sp.GetRequiredService<ILoggerFactory>().CreateLogger<DomainEventDispatchInterceptor>()));
+        });
 
         services.AddScoped<IInvoiceRepository, InvoiceRepository>();
+
+        services.AddScoped<IReminderScheduler, LoggingReminderScheduler>();
+        services.AddScoped<ICashflowProjectionService, LoggingCashflowProjectionService>();
+        services.AddScoped<IAlertService, LoggingAlertService>();
 
         return services;
     }
