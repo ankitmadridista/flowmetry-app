@@ -11,6 +11,7 @@ public class InvoiceOverdueHandler(
     IAlertService alertService,
     IReminderScheduler reminderScheduler,
     IOptions<ReminderOptions> options,
+    ICashflowProjectionService cashflowProjectionService,
     ILogger<InvoiceOverdueHandler> logger)
     : INotificationHandler<DomainEventNotification<InvoiceOverdue>>
 {
@@ -45,12 +46,23 @@ public class InvoiceOverdueHandler(
                 "Failed to schedule Escalation reminder for InvoiceId {InvoiceId}: {Reason}",
                 evt.InvoiceId,
                 reminderFailure.Reason);
-            return;
+        }
+        else
+        {
+            logger.LogInformation(
+                "Scheduled Escalation reminder for InvoiceId {InvoiceId} at {ScheduledAt}",
+                evt.InvoiceId,
+                scheduledAt);
         }
 
-        logger.LogInformation(
-            "Scheduled Escalation reminder for InvoiceId {InvoiceId} at {ScheduledAt}",
-            evt.InvoiceId,
-            scheduledAt);
+        var cashflowResult = await cashflowProjectionService.MarkOverdueAsync(evt.InvoiceId, cancellationToken);
+
+        if (cashflowResult is ServiceResult.Failure cashflowFailure)
+        {
+            logger.LogWarning(
+                "Failed to mark cashflow projection as overdue for InvoiceId {InvoiceId}: {Reason}",
+                evt.InvoiceId,
+                cashflowFailure.Reason);
+        }
     }
 }

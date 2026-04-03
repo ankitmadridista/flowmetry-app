@@ -145,6 +145,15 @@ internal sealed class StatefulCashflowProjectionService : ICashflowProjectionSer
 {
     private readonly Dictionary<Guid, (decimal RunningTotal, bool IsSettled)> _projections = new();
 
+    public Task<ServiceResult> InitialiseAsync(
+        Guid invoiceId,
+        decimal invoiceAmount,
+        CancellationToken ct = default)
+    {
+        _projections.TryAdd(invoiceId, (0m, false));
+        return Task.FromResult<ServiceResult>(new ServiceResult.Success());
+    }
+
     public Task<ServiceResult> ApplyPaymentAsync(
         Guid invoiceId,
         decimal paymentAmount,
@@ -163,6 +172,13 @@ internal sealed class StatefulCashflowProjectionService : ICashflowProjectionSer
         // Idempotent: marking settled twice is the same as once
         var runningTotal = _projections.TryGetValue(invoiceId, out var existing) ? existing.RunningTotal : 0m;
         _projections[invoiceId] = (runningTotal, true);
+        return Task.FromResult<ServiceResult>(new ServiceResult.Success());
+    }
+
+    public Task<ServiceResult> MarkOverdueAsync(
+        Guid invoiceId,
+        CancellationToken ct = default)
+    {
         return Task.FromResult<ServiceResult>(new ServiceResult.Success());
     }
 

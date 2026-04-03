@@ -10,6 +10,7 @@ namespace Flowmetry.Application.Invoices.EventHandlers;
 public class InvoiceCreatedHandler(
     IReminderScheduler reminderScheduler,
     IOptions<ReminderOptions> options,
+    ICashflowProjectionService cashflowProjectionService,
     ILogger<InvoiceCreatedHandler> logger)
     : INotificationHandler<DomainEventNotification<InvoiceCreated>>
 {
@@ -36,5 +37,15 @@ public class InvoiceCreatedHandler(
             "Scheduled Initial reminder for InvoiceId {InvoiceId} at {ScheduledAt}",
             evt.InvoiceId,
             scheduledAt);
+
+        var cashflowResult = await cashflowProjectionService.InitialiseAsync(evt.InvoiceId, evt.Amount, cancellationToken);
+
+        if (cashflowResult is ServiceResult.Failure cashflowFailure)
+        {
+            logger.LogWarning(
+                "Failed to initialise cashflow projection for InvoiceId {InvoiceId}: {Reason}",
+                evt.InvoiceId,
+                cashflowFailure.Reason);
+        }
     }
 }

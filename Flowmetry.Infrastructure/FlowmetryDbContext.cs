@@ -1,4 +1,5 @@
 using Flowmetry.Domain;
+using Flowmetry.Infrastructure.Projections;
 using Microsoft.EntityFrameworkCore;
 
 namespace Flowmetry.Infrastructure;
@@ -8,6 +9,7 @@ public class FlowmetryDbContext(DbContextOptions<FlowmetryDbContext> options) : 
     public DbSet<Invoice> Invoices => Set<Invoice>();
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<CashflowProjection> CashflowProjections => Set<CashflowProjection>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -37,6 +39,17 @@ public class FlowmetryDbContext(DbContextOptions<FlowmetryDbContext> options) : 
         {
             builder.ToTable("customers");
             builder.HasKey(c => c.Id);
+        });
+
+        modelBuilder.Entity<CashflowProjection>(builder =>
+        {
+            builder.ToTable("cashflow_projections");
+            builder.HasKey(p => p.InvoiceId);
+            builder.Property(p => p.InvoiceId).ValueGeneratedNever();
+            builder.Property(p => p.InvoiceAmount).HasColumnType("numeric(18,2)");
+            builder.Property(p => p.PaidAmount).HasColumnType("numeric(18,2)");
+            builder.Property(p => p.Status).HasMaxLength(32);
+            builder.Property(p => p.SettledAt).HasColumnType("timestamp with time zone");
         });
     }
 }

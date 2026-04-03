@@ -3,6 +3,7 @@ using Flowmetry.Application.Invoices.Services;
 using Flowmetry.Infrastructure.Events;
 using Flowmetry.Infrastructure.Events.Stubs;
 using Flowmetry.Infrastructure.Persistence;
+using Flowmetry.Infrastructure.Projections;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -36,9 +37,10 @@ public static class ServiceCollectionExtensions
         });
 
         services.AddScoped<IInvoiceRepository, InvoiceRepository>();
+        services.AddScoped<ICashflowDashboardRepository, CashflowDashboardRepository>();
 
         services.AddScoped<IReminderScheduler, LoggingReminderScheduler>();
-        services.AddScoped<ICashflowProjectionService, LoggingCashflowProjectionService>();
+        services.AddScoped<ICashflowProjectionService, EfCashflowProjectionService>();
         services.AddScoped<IAlertService, LoggingAlertService>();
 
         return services;

@@ -55,6 +55,7 @@ public class EventHandlerPropertyTests
             var handler = new InvoiceCreatedHandler(
                 spy,
                 options,
+                new SpyCashflowProjectionService(),
                 NullLogger<InvoiceCreatedHandler>.Instance);
 
             await handler.Handle(notification, CancellationToken.None);
@@ -227,6 +228,7 @@ public class EventHandlerPropertyTests
                 spyAlert,
                 spyScheduler,
                 options,
+                new SpyCashflowProjectionService(),
                 NullLogger<InvoiceOverdueHandler>.Instance);
 
             await handler.Handle(notification, CancellationToken.None);
@@ -352,9 +354,19 @@ internal class SpyCashflowProjectionService : ICashflowProjectionService
 {
     public record ApplyCall(Guid InvoiceId, decimal PaymentAmount, decimal RunningTotal);
     public record SettleCall(Guid InvoiceId);
+    public record InitialiseCall(Guid InvoiceId, decimal InvoiceAmount);
+    public record MarkOverdueCall(Guid InvoiceId);
 
     public List<ApplyCall> ApplyCalls { get; } = new();
     public List<SettleCall> SettleCalls { get; } = new();
+    public List<InitialiseCall> InitialiseCalls { get; } = new();
+    public List<MarkOverdueCall> MarkOverdueCalls { get; } = new();
+
+    public Task<ServiceResult> InitialiseAsync(Guid invoiceId, decimal invoiceAmount, CancellationToken ct)
+    {
+        InitialiseCalls.Add(new(invoiceId, invoiceAmount));
+        return Task.FromResult<ServiceResult>(new ServiceResult.Success());
+    }
 
     public Task<ServiceResult> ApplyPaymentAsync(Guid invoiceId, decimal paymentAmount, decimal runningTotal, CancellationToken ct)
     {
@@ -365,6 +377,12 @@ internal class SpyCashflowProjectionService : ICashflowProjectionService
     public Task<ServiceResult> MarkSettledAsync(Guid invoiceId, CancellationToken ct)
     {
         SettleCalls.Add(new(invoiceId));
+        return Task.FromResult<ServiceResult>(new ServiceResult.Success());
+    }
+
+    public Task<ServiceResult> MarkOverdueAsync(Guid invoiceId, CancellationToken ct)
+    {
+        MarkOverdueCalls.Add(new(invoiceId));
         return Task.FromResult<ServiceResult>(new ServiceResult.Success());
     }
 }

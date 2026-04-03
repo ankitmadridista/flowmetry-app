@@ -62,7 +62,7 @@ public class EventHandlerEdgeCaseTests
         var evt = new InvoiceCreated(invoiceId, Guid.NewGuid(), 500m, DateOnly.FromDateTime(DateTime.UtcNow.AddDays(30)));
         var notification = new DomainEventNotification<InvoiceCreated>(evt);
 
-        var handler = new InvoiceCreatedHandler(scheduler, options, logger);
+        var handler = new InvoiceCreatedHandler(scheduler, options, new NoOpCashflowService(), logger);
 
         // Act — must not throw
         await handler.Handle(notification, CancellationToken.None);
@@ -107,7 +107,7 @@ public class EventHandlerEdgeCaseTests
         var evt = new InvoiceOverdue(invoiceId, DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)));
         var notification = new DomainEventNotification<InvoiceOverdue>(evt);
 
-        var handler = new InvoiceOverdueHandler(alertService, scheduler, options, logger);
+        var handler = new InvoiceOverdueHandler(alertService, scheduler, options, new NoOpCashflowService(), logger);
 
         // Act — must not throw
         await handler.Handle(notification, CancellationToken.None);
@@ -132,7 +132,7 @@ public class EventHandlerEdgeCaseTests
         var evt = new InvoiceOverdue(invoiceId, DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)));
         var notification = new DomainEventNotification<InvoiceOverdue>(evt);
 
-        var handler = new InvoiceOverdueHandler(alertService, scheduler, options, logger);
+        var handler = new InvoiceOverdueHandler(alertService, scheduler, options, new NoOpCashflowService(), logger);
 
         // Act — must not throw
         await handler.Handle(notification, CancellationToken.None);
@@ -217,10 +217,16 @@ internal class FailingScheduler : IReminderScheduler
 
 internal class FailingCashflowService : ICashflowProjectionService
 {
+    public Task<ServiceResult> InitialiseAsync(Guid invoiceId, decimal invoiceAmount, CancellationToken ct)
+        => Task.FromResult<ServiceResult>(new ServiceResult.Failure("cashflow error"));
+
     public Task<ServiceResult> ApplyPaymentAsync(Guid invoiceId, decimal paymentAmount, decimal runningTotal, CancellationToken ct = default)
         => Task.FromResult<ServiceResult>(new ServiceResult.Failure("cashflow error"));
 
     public Task<ServiceResult> MarkSettledAsync(Guid invoiceId, CancellationToken ct = default)
+        => Task.FromResult<ServiceResult>(new ServiceResult.Failure("cashflow error"));
+
+    public Task<ServiceResult> MarkOverdueAsync(Guid invoiceId, CancellationToken ct)
         => Task.FromResult<ServiceResult>(new ServiceResult.Failure("cashflow error"));
 }
 
@@ -237,5 +243,22 @@ internal class FailingAlertService : IAlertService
 internal class SucceedingAlertService : IAlertService
 {
     public Task<ServiceResult> EmitOverdueAlertAsync(Guid invoiceId, DateOnly dueDate, CancellationToken ct = default)
+        => Task.FromResult<ServiceResult>(new ServiceResult.Success());
+}
+
+// ── NoOpCashflowService ───────────────────────────────────────────────────────
+
+internal class NoOpCashflowService : ICashflowProjectionService
+{
+    public Task<ServiceResult> InitialiseAsync(Guid invoiceId, decimal invoiceAmount, CancellationToken ct)
+        => Task.FromResult<ServiceResult>(new ServiceResult.Success());
+
+    public Task<ServiceResult> ApplyPaymentAsync(Guid invoiceId, decimal paymentAmount, decimal runningTotal, CancellationToken ct = default)
+        => Task.FromResult<ServiceResult>(new ServiceResult.Success());
+
+    public Task<ServiceResult> MarkSettledAsync(Guid invoiceId, CancellationToken ct = default)
+        => Task.FromResult<ServiceResult>(new ServiceResult.Success());
+
+    public Task<ServiceResult> MarkOverdueAsync(Guid invoiceId, CancellationToken ct)
         => Task.FromResult<ServiceResult>(new ServiceResult.Success());
 }
