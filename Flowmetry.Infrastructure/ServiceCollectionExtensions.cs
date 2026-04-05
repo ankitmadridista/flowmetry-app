@@ -1,5 +1,6 @@
 using Flowmetry.Application.Invoices;
 using Flowmetry.Application.Invoices.Services;
+using Flowmetry.Application.Reminders;
 using Flowmetry.Infrastructure.Events;
 using Flowmetry.Infrastructure.Events.Stubs;
 using Flowmetry.Infrastructure.Persistence;
@@ -38,6 +39,9 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IInvoiceRepository, InvoiceRepository>();
         services.AddScoped<ICashflowDashboardRepository, CashflowDashboardRepository>();
+        services.AddScoped<IReminderRepository, ReminderRepository>();
+        services.AddScoped<INotificationService, LoggingNotificationService>();
+        services.AddHostedService<RemindersEngine>();
 
         services.AddScoped<IReminderScheduler, LoggingReminderScheduler>();
         services.AddScoped<ICashflowProjectionService, EfCashflowProjectionService>();

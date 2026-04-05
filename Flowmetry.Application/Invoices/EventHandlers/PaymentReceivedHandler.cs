@@ -1,5 +1,6 @@
 using Flowmetry.Application.Common;
 using Flowmetry.Application.Invoices.Services;
+using Flowmetry.Application.Reminders;
 using Flowmetry.Domain.Events;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -9,6 +10,7 @@ namespace Flowmetry.Application.Invoices.EventHandlers;
 public class PaymentReceivedHandler(
     IInvoiceRepository invoiceRepository,
     ICashflowProjectionService cashflowProjectionService,
+    IReminderRepository reminderRepository,
     ILogger<PaymentReceivedHandler> logger)
     : INotificationHandler<DomainEventNotification<PaymentReceived>>
 {
@@ -50,6 +52,20 @@ public class PaymentReceivedHandler(
             logger.LogInformation(
                 "Cashflow projection marked as settled for InvoiceId {InvoiceId}",
                 evt.InvoiceId);
+
+            var pendingReminders = await reminderRepository.GetPendingByInvoiceIdAsync(invoice.Id, cancellationToken);
+            foreach (var reminder in pendingReminders)
+                reminder.Cancel();
+
+            if (pendingReminders.Count > 0)
+            {
+                await reminderRepository.SaveChangesAsync(cancellationToken);
+                logger.LogInformation(
+                    "Cancelled {Count} pending reminder(s) for InvoiceId {InvoiceId}",
+                    pendingReminders.Count,
+                    invoice.Id);
+            }
+
             return;
         }
 

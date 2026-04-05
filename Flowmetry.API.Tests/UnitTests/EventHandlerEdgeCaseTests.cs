@@ -5,8 +5,10 @@ using Flowmetry.Application.Common;
 using Flowmetry.Application.Invoices;
 using Flowmetry.Application.Invoices.EventHandlers;
 using Flowmetry.Application.Invoices.Services;
+using Flowmetry.Application.Reminders;
 using Flowmetry.Domain;
 using Flowmetry.Domain.Events;
+using MediatR;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -21,26 +23,24 @@ public class EventHandlerEdgeCaseTests
     // Requirements: 3.3
 
     [Fact]
-    public async Task InvoiceSentHandler_WhenInvoiceNotFound_LogsWarningAndMakesNoSchedulerCalls()
+    public async Task InvoiceSentHandler_WhenInvoiceNotFound_LogsWarningAndMakesNoSenderCalls()
     {
         // Arrange
         var invoiceId = Guid.NewGuid();
         var repo = new NullReturningRepository();
-        var scheduler = new RecordingScheduler();
+        var sender = new RecordingSender();
         var logger = new CapturingLogger<InvoiceSentHandler>();
-        var options = Options.Create(new ReminderOptions { DueDateReminderDaysBeforeDue = 3 });
 
         var evt = new InvoiceSent(invoiceId, DateTimeOffset.UtcNow);
         var notification = new DomainEventNotification<InvoiceSent>(evt);
 
-        var handler = new InvoiceSentHandler(repo, scheduler, options, logger);
+        var handler = new InvoiceSentHandler(repo, sender, logger);
 
         // Act
         await handler.Handle(notification, CancellationToken.None);
 
-        // Assert: no scheduler calls were made
-        Assert.Empty(scheduler.ScheduleCalls);
-        Assert.Empty(scheduler.CancelOrReplaceCalls);
+        // Assert: no sender calls were made
+        Assert.Empty(sender.SentRequests);
 
         // Assert: a warning was logged containing the InvoiceId
         var warning = Assert.Single(logger.Entries, e => e.Level == LogLevel.Warning);
@@ -85,7 +85,7 @@ public class EventHandlerEdgeCaseTests
         var evt = new PaymentReceived(invoiceId, 100m, 100m);
         var notification = new DomainEventNotification<PaymentReceived>(evt);
 
-        var handler = new PaymentReceivedHandler(repo, cashflow, logger);
+        var handler = new PaymentReceivedHandler(repo, cashflow, new NoOpReminderRepository(), logger);
 
         // Act — must not throw
         await handler.Handle(notification, CancellationToken.None);
@@ -169,18 +169,18 @@ internal class NullReturningRepository : IInvoiceRepository
 
 internal class RecordingScheduler : IReminderScheduler
 {
-    public record ScheduleCall(Guid InvoiceId, ReminderType Type, DateTimeOffset ScheduledAt);
+    public record ScheduleCall(Guid InvoiceId, Flowmetry.Application.Invoices.Services.ReminderType Type, DateTimeOffset ScheduledAt);
 
     public List<ScheduleCall> ScheduleCalls { get; } = new();
     public List<ScheduleCall> CancelOrReplaceCalls { get; } = new();
 
-    public Task<ServiceResult> ScheduleAsync(Guid invoiceId, ReminderType type, DateTimeOffset scheduledAt, CancellationToken ct = default)
+    public Task<ServiceResult> ScheduleAsync(Guid invoiceId, Flowmetry.Application.Invoices.Services.ReminderType type, DateTimeOffset scheduledAt, CancellationToken ct = default)
     {
         ScheduleCalls.Add(new(invoiceId, type, scheduledAt));
         return Task.FromResult<ServiceResult>(new ServiceResult.Success());
     }
 
-    public Task<ServiceResult> CancelOrReplaceAsync(Guid invoiceId, ReminderType type, DateTimeOffset scheduledAt, CancellationToken ct = default)
+    public Task<ServiceResult> CancelOrReplaceAsync(Guid invoiceId, Flowmetry.Application.Invoices.Services.ReminderType type, DateTimeOffset scheduledAt, CancellationToken ct = default)
     {
         CancelOrReplaceCalls.Add(new(invoiceId, type, scheduledAt));
         return Task.FromResult<ServiceResult>(new ServiceResult.Success());
@@ -206,10 +206,10 @@ internal class CapturingLogger<T> : ILogger<T>
 
 internal class FailingScheduler : IReminderScheduler
 {
-    public Task<ServiceResult> ScheduleAsync(Guid invoiceId, ReminderType type, DateTimeOffset scheduledAt, CancellationToken ct = default)
+    public Task<ServiceResult> ScheduleAsync(Guid invoiceId, Flowmetry.Application.Invoices.Services.ReminderType type, DateTimeOffset scheduledAt, CancellationToken ct = default)
         => Task.FromResult<ServiceResult>(new ServiceResult.Failure("scheduler error"));
 
-    public Task<ServiceResult> CancelOrReplaceAsync(Guid invoiceId, ReminderType type, DateTimeOffset scheduledAt, CancellationToken ct = default)
+    public Task<ServiceResult> CancelOrReplaceAsync(Guid invoiceId, Flowmetry.Application.Invoices.Services.ReminderType type, DateTimeOffset scheduledAt, CancellationToken ct = default)
         => Task.FromResult<ServiceResult>(new ServiceResult.Failure("scheduler error"));
 }
 
@@ -261,4 +261,53 @@ internal class NoOpCashflowService : ICashflowProjectionService
 
     public Task<ServiceResult> MarkOverdueAsync(Guid invoiceId, CancellationToken ct)
         => Task.FromResult<ServiceResult>(new ServiceResult.Success());
+}
+
+// ── RecordingSender ───────────────────────────────────────────────────────────
+
+internal class RecordingSender : ISender
+{
+    public List<object> SentRequests { get; } = new();
+
+    public Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
+    {
+        SentRequests.Add(request);
+        return Task.FromResult(default(TResponse)!);
+    }
+
+    public Task Send<TRequest>(TRequest request, CancellationToken cancellationToken = default) where TRequest : IRequest
+    {
+        SentRequests.Add(request!);
+        return Task.CompletedTask;
+    }
+
+    public Task<object?> Send(object request, CancellationToken cancellationToken = default)
+    {
+        SentRequests.Add(request);
+        return Task.FromResult<object?>(null);
+    }
+
+    public IAsyncEnumerable<TResponse> CreateStream<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken = default)
+        => throw new NotImplementedException();
+
+    public IAsyncEnumerable<object?> CreateStream(object request, CancellationToken cancellationToken = default)
+        => throw new NotImplementedException();
+}
+
+// ── NoOpReminderRepository ────────────────────────────────────────────────────
+
+internal class NoOpReminderRepository : IReminderRepository
+{
+    public Task AddAsync(Reminder reminder, CancellationToken ct = default) => Task.CompletedTask;
+
+    public Task<IReadOnlyList<Reminder>> GetPendingDueAsync(DateTimeOffset utcNow, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<Reminder>>(new List<Reminder>());
+
+    public Task<IReadOnlyList<Reminder>> GetByInvoiceIdAsync(Guid invoiceId, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<Reminder>>(new List<Reminder>());
+
+    public Task<IReadOnlyList<Reminder>> GetPendingByInvoiceIdAsync(Guid invoiceId, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<Reminder>>(new List<Reminder>());
+
+    public Task SaveChangesAsync(CancellationToken ct = default) => Task.CompletedTask;
 }

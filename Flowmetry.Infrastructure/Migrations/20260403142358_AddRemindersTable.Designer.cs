@@ -3,6 +3,7 @@ using System;
 using Flowmetry.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Flowmetry.Infrastructure.Migrations
 {
     [DbContext(typeof(FlowmetryDbContext))]
-    partial class FlowmetryDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260403142358_AddRemindersTable")]
+    partial class AddRemindersTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

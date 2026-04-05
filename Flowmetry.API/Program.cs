@@ -85,6 +85,7 @@ using (var scope = app.Services.CreateScope())
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
 app.MapInvoiceEndpoints();
+app.MapReminderEndpoints();
 app.MapDashboardEndpoints();
 
 app.Run();

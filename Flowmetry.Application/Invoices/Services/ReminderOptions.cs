@@ -6,4 +6,5 @@ public class ReminderOptions
     public int InitialReminderDaysBeforeDue { get; init; } = 7;
     public int DueDateReminderDaysBeforeDue { get; init; } = 3;
     public int EscalationReminderDaysAfterDue { get; init; } = 1;
+    public int PollingIntervalSeconds { get; init; } = 60;
 }

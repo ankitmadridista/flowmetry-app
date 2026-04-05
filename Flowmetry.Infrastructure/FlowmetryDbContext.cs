@@ -10,6 +10,7 @@ public class FlowmetryDbContext(DbContextOptions<FlowmetryDbContext> options) : 
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<CashflowProjection> CashflowProjections => Set<CashflowProjection>();
+    public DbSet<Reminder> Reminders => Set<Reminder>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -50,6 +51,16 @@ public class FlowmetryDbContext(DbContextOptions<FlowmetryDbContext> options) : 
             builder.Property(p => p.PaidAmount).HasColumnType("numeric(18,2)");
             builder.Property(p => p.Status).HasMaxLength(32);
             builder.Property(p => p.SettledAt).HasColumnType("timestamp with time zone");
+        });
+
+        modelBuilder.Entity<Reminder>(builder =>
+        {
+            builder.ToTable("reminders");
+            builder.HasKey(r => r.Id);
+            builder.Property(r => r.Id).ValueGeneratedNever();
+            builder.Property(r => r.ReminderType).HasConversion<string>();
+            builder.Property(r => r.Status).HasConversion<string>();
+            builder.HasIndex(r => new { r.Status, r.ScheduledAt });
         });
     }
 }

@@ -1,5 +1,5 @@
 // Feature: domain-event-handlers, Property 4: InvoiceCreated handler schedules Initial reminder at correct offset
-// Feature: domain-event-handlers, Property 5: InvoiceSent handler schedules DueDate reminder derived from repository
+// Feature: domain-event-handlers, Property 5: InvoiceSent handler schedules reminders via ISender
 // Feature: domain-event-handlers, Property 6: PaymentReceived handler applies payment to cashflow projection
 // Feature: domain-event-handlers, Property 7: PaymentReceived handler marks projection settled when fully paid
 // Feature: domain-event-handlers, Property 8: InvoiceOverdue handler emits alert and schedules escalation
@@ -9,10 +9,15 @@ using Flowmetry.Application.Common;
 using Flowmetry.Application.Invoices;
 using Flowmetry.Application.Invoices.EventHandlers;
 using Flowmetry.Application.Invoices.Services;
+using Flowmetry.Application.Reminders;
+using Flowmetry.Application.Reminders.Commands;
 using Flowmetry.Domain;
 using Flowmetry.Domain.Events;
+using MediatR;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using ServicesReminderType = Flowmetry.Application.Invoices.Services.ReminderType;
+using DomainReminderType = Flowmetry.Domain.ReminderType;
 
 namespace Flowmetry.API.Tests.PropertyTests;
 
@@ -69,7 +74,7 @@ public class EventHandlerPropertyTests
             Assert.Equal(evt.InvoiceId, call.InvoiceId);
 
             // Assert: ReminderType.Initial was passed
-            Assert.Equal(ReminderType.Initial, call.Type);
+            Assert.Equal(ServicesReminderType.Initial, call.Type);
 
             // Assert: ScheduledAt == DueDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc) - TimeSpan.FromDays(offset)
             var expectedScheduledAt = dueDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc)
@@ -78,62 +83,48 @@ public class EventHandlerPropertyTests
         });
     }
 
-    // ── Property 5: InvoiceSent schedules DueDate reminder derived from repository ──
+    // ── Property 5: InvoiceSent schedules reminders via ISender ──
     // Validates: Requirements 3.1, 3.2
 
     [Fact]
-    public async Task Property5_InvoiceSent_SchedulesDueDateReminderFromRepository()
+    public async Task Property5_InvoiceSent_SchedulesRemindersViaSender()
     {
         // **Validates: Requirements 3.1, 3.2**
         //
         // For any InvoiceSent event where the referenced invoice exists in the
-        // repository with any DueDate, the handler should call
-        // IReminderScheduler.CancelOrReplaceAsync with ReminderType.DueDate and a
-        // ScheduledAt derived from the repository's DueDate minus the configured
-        // DueDateReminderDaysBeforeDue offset.
+        // repository with any DueDate far enough in the future, the handler should
+        // dispatch ScheduleReminderCommand via ISender for PostDue and Escalation
+        // (and PreDue when DueDate - 3 days is in the future).
 
         var gen =
-            from year in Gen.Int[2020, 2040]
+            from year in Gen.Int[2030, 2040]
             from month in Gen.Int[1, 12]
             from day in Gen.Int[1, 28]
-            from offset in Gen.Int[1, 30]
-            select (DueDate: new DateOnly(year, month, day), Offset: offset);
+            select new DateOnly(year, month, day);
 
-        await gen.SampleAsync(async tuple =>
+        await gen.SampleAsync(async dueDate =>
         {
-            var (dueDate, offset) = tuple;
-
             var invoice = Invoice.Create(Guid.NewGuid(), 500m, dueDate);
             var repo = new StubInvoiceRepository(invoice);
-            var spy = new SpyReminderScheduler();
-            var options = Options.Create(new ReminderOptions { DueDateReminderDaysBeforeDue = offset });
+            var sender = new SpySender();
 
             var evt = new InvoiceSent(invoice.Id, DateTimeOffset.UtcNow);
             var notification = new DomainEventNotification<InvoiceSent>(evt);
 
             var handler = new InvoiceSentHandler(
                 repo,
-                spy,
-                options,
+                sender,
                 NullLogger<InvoiceSentHandler>.Instance);
 
             await handler.Handle(notification, CancellationToken.None);
 
-            // Assert: exactly one CancelOrReplaceAsync call was made
-            Assert.Single(spy.CancelOrReplaceCalls);
+            // Assert: at least PostDue and Escalation commands were sent
+            var commands = sender.SentRequests.OfType<ScheduleReminderCommand>().ToList();
+            Assert.Contains(commands, c => c.ReminderType == DomainReminderType.PostDue);
+            Assert.Contains(commands, c => c.ReminderType == DomainReminderType.Escalation);
 
-            var call = spy.CancelOrReplaceCalls[0];
-
-            // Assert: correct InvoiceId
-            Assert.Equal(invoice.Id, call.InvoiceId);
-
-            // Assert: ReminderType.DueDate was passed
-            Assert.Equal(ReminderType.DueDate, call.Type);
-
-            // Assert: ScheduledAt == DueDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc) - TimeSpan.FromDays(offset)
-            var expectedScheduledAt = dueDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc)
-                - TimeSpan.FromDays(offset);
-            Assert.Equal(expectedScheduledAt, call.ScheduledAt);
+            // Assert: all commands reference the correct invoice
+            Assert.All(commands, c => Assert.Equal(invoice.Id, c.InvoiceId));
         });
     }
     // ── Property 6: PaymentReceived applies payment to cashflow projection ──
@@ -172,6 +163,7 @@ public class EventHandlerPropertyTests
             var handler = new PaymentReceivedHandler(
                 repo,
                 spy,
+                new NoOpReminderRepo(),
                 NullLogger<PaymentReceivedHandler>.Instance);
 
             await handler.Handle(notification, CancellationToken.None);
@@ -242,7 +234,7 @@ public class EventHandlerPropertyTests
             Assert.Single(spyScheduler.CancelOrReplaceCalls);
             var scheduleCall = spyScheduler.CancelOrReplaceCalls[0];
             Assert.Equal(invoiceId, scheduleCall.InvoiceId);
-            Assert.Equal(ReminderType.Escalation, scheduleCall.Type);
+            Assert.Equal(ServicesReminderType.Escalation, scheduleCall.Type);
 
             var expectedScheduledAt = dueDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc)
                 + TimeSpan.FromDays(escalationDays);
@@ -285,6 +277,7 @@ public class EventHandlerPropertyTests
             var handler = new PaymentReceivedHandler(
                 repo,
                 spy,
+                new NoOpReminderRepo(),
                 NullLogger<PaymentReceivedHandler>.Instance);
 
             await handler.Handle(notification, CancellationToken.None);
@@ -304,18 +297,18 @@ public class EventHandlerPropertyTests
 
 internal class SpyReminderScheduler : IReminderScheduler
 {
-    public record ScheduleCall(Guid InvoiceId, ReminderType Type, DateTimeOffset ScheduledAt);
+    public record ScheduleCall(Guid InvoiceId, ServicesReminderType Type, DateTimeOffset ScheduledAt);
 
     public List<ScheduleCall> ScheduleCalls { get; } = new();
     public List<ScheduleCall> CancelOrReplaceCalls { get; } = new();
 
-    public Task<ServiceResult> ScheduleAsync(Guid invoiceId, ReminderType type, DateTimeOffset scheduledAt, CancellationToken ct = default)
+    public Task<ServiceResult> ScheduleAsync(Guid invoiceId, ServicesReminderType type, DateTimeOffset scheduledAt, CancellationToken ct = default)
     {
         ScheduleCalls.Add(new(invoiceId, type, scheduledAt));
         return Task.FromResult<ServiceResult>(new ServiceResult.Success());
     }
 
-    public Task<ServiceResult> CancelOrReplaceAsync(Guid invoiceId, ReminderType type, DateTimeOffset scheduledAt, CancellationToken ct = default)
+    public Task<ServiceResult> CancelOrReplaceAsync(Guid invoiceId, ServicesReminderType type, DateTimeOffset scheduledAt, CancellationToken ct = default)
     {
         CancelOrReplaceCalls.Add(new(invoiceId, type, scheduledAt));
         return Task.FromResult<ServiceResult>(new ServiceResult.Success());
@@ -399,4 +392,53 @@ internal class SpyAlertService : IAlertService
         AlertCalls.Add(new(invoiceId, dueDate));
         return Task.FromResult<ServiceResult>(new ServiceResult.Success());
     }
+}
+
+// ── SpySender ─────────────────────────────────────────────────────────────────
+
+internal class SpySender : ISender
+{
+    public List<object> SentRequests { get; } = new();
+
+    public Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
+    {
+        SentRequests.Add(request);
+        return Task.FromResult(default(TResponse)!);
+    }
+
+    public Task Send<TRequest>(TRequest request, CancellationToken cancellationToken = default) where TRequest : IRequest
+    {
+        SentRequests.Add(request!);
+        return Task.CompletedTask;
+    }
+
+    public Task<object?> Send(object request, CancellationToken cancellationToken = default)
+    {
+        SentRequests.Add(request);
+        return Task.FromResult<object?>(null);
+    }
+
+    public IAsyncEnumerable<TResponse> CreateStream<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken = default)
+        => throw new NotImplementedException();
+
+    public IAsyncEnumerable<object?> CreateStream(object request, CancellationToken cancellationToken = default)
+        => throw new NotImplementedException();
+}
+
+// ── NoOpReminderRepo ──────────────────────────────────────────────────────────
+
+internal class NoOpReminderRepo : IReminderRepository
+{
+    public Task AddAsync(Reminder reminder, CancellationToken ct = default) => Task.CompletedTask;
+
+    public Task<IReadOnlyList<Reminder>> GetPendingDueAsync(DateTimeOffset utcNow, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<Reminder>>(new List<Reminder>());
+
+    public Task<IReadOnlyList<Reminder>> GetByInvoiceIdAsync(Guid invoiceId, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<Reminder>>(new List<Reminder>());
+
+    public Task<IReadOnlyList<Reminder>> GetPendingByInvoiceIdAsync(Guid invoiceId, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<Reminder>>(new List<Reminder>());
+
+    public Task SaveChangesAsync(CancellationToken ct = default) => Task.CompletedTask;
 }
