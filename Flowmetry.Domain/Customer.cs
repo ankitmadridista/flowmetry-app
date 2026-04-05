@@ -9,4 +9,18 @@ public class Customer
 
     // Required by EF Core
     private Customer() { }
+
+    public static Customer Create(string name, string email)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentException.ThrowIfNullOrWhiteSpace(email);
+
+        return new Customer
+        {
+            Id        = Guid.NewGuid(),
+            Name      = name,
+            Email     = email,
+            RiskScore = 0
+        };
+    }
 }

@@ -1,3 +1,4 @@
+using Flowmetry.Application.Customers;
 using Flowmetry.Application.Invoices;
 using Flowmetry.Application.Invoices.Services;
 using Flowmetry.Application.Reminders;
@@ -38,6 +39,7 @@ public static class ServiceCollectionExtensions
                     sp.GetRequiredService<ILoggerFactory>().CreateLogger<DomainEventDispatchInterceptor>()));
         });
 
+        services.AddScoped<ICustomerRepository, CustomerRepository>();
         services.AddScoped<IInvoiceRepository, InvoiceRepository>();
         services.AddScoped<IRiskProfileRepository, RiskProfileRepository>();
         services.AddScoped<ICashflowDashboardRepository, CashflowDashboardRepository>();

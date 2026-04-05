@@ -88,6 +88,7 @@ app.MapInvoiceEndpoints();
 app.MapReminderEndpoints();
 app.MapDashboardEndpoints();
 app.MapRiskProfileEndpoints();
+app.MapCustomerEndpoints();
 
 app.Run();
 
