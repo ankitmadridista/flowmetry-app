@@ -21,6 +21,9 @@ public class FlowmetryDbContext(DbContextOptions<FlowmetryDbContext> options) : 
             builder.ToTable("invoices");
             builder.HasKey(i => i.Id);
             builder.Property(i => i.Id).ValueGeneratedNever();
+            builder.Property(i => i.InvoiceNumber)
+                   .UseIdentityByDefaultColumn()
+                   .ValueGeneratedOnAdd();
             builder.Property(i => i.Status).HasConversion<string>();
             builder.Navigation(i => i.Payments).HasField("_payments").UsePropertyAccessMode(PropertyAccessMode.Field);
             builder.Ignore(i => i.DomainEvents);

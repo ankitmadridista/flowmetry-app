@@ -3,6 +3,7 @@
 
 using Flowmetry.Application.Common;
 using Flowmetry.Application.Invoices;
+using Flowmetry.Application.Invoices.Dtos;
 using Flowmetry.Application.Invoices.EventHandlers;
 using Flowmetry.Application.Invoices.Services;
 using Flowmetry.Application.Reminders;
@@ -162,6 +163,15 @@ internal class NullReturningRepository : IInvoiceRepository
         => throw new NotImplementedException();
 
     public Task<bool> CustomerExistsAsync(Guid customerId, CancellationToken cancellationToken = default)
+        => throw new NotImplementedException();
+
+    public Task<PagedResult<Invoice>> GetPagedAsync(InvoiceFilter filter, CancellationToken ct = default)
+        => throw new NotImplementedException();
+
+    public Task<PagedResult<InvoiceSummaryDto>> GetPagedSummariesAsync(InvoiceFilter filter, CancellationToken ct = default)
+        => throw new NotImplementedException();
+
+    public Task<InvoiceDetailsDto?> GetDetailsByIdAsync(Guid id, CancellationToken ct = default)
         => throw new NotImplementedException();
 }
 

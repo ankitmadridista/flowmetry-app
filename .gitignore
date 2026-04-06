@@ -211,3 +211,4 @@ appsettings.Development.json
 
 # VS project user settings
 *.csproj.user
+*.user

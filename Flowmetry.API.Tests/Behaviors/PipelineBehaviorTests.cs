@@ -2,6 +2,7 @@ using Flowmetry.Application;
 using Flowmetry.Application.Common;
 using Flowmetry.Application.Invoices;
 using Flowmetry.Application.Invoices.Commands;
+using Flowmetry.Application.Invoices.Dtos;
 using Flowmetry.Domain;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -119,4 +120,13 @@ internal class TrackingInvoiceRepository(bool customerExists = false) : IInvoice
 
     public Task<bool> CustomerExistsAsync(Guid customerId, CancellationToken cancellationToken = default)
         => Task.FromResult(customerExists);
+
+    public Task<PagedResult<Invoice>> GetPagedAsync(InvoiceFilter filter, CancellationToken ct = default)
+        => throw new NotImplementedException();
+
+    public Task<PagedResult<InvoiceSummaryDto>> GetPagedSummariesAsync(InvoiceFilter filter, CancellationToken ct = default)
+        => throw new NotImplementedException();
+
+    public Task<InvoiceDetailsDto?> GetDetailsByIdAsync(Guid id, CancellationToken ct = default)
+        => throw new NotImplementedException();
 }

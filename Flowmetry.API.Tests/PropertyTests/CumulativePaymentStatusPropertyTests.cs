@@ -2,6 +2,7 @@ using CsCheck;
 using Flowmetry.Application.Common;
 using Flowmetry.Application.Invoices;
 using Flowmetry.Application.Invoices.Commands;
+using Flowmetry.Application.Invoices.Dtos;
 using Flowmetry.Domain;
 using MediatR;
 
@@ -180,6 +181,45 @@ public class CumulativePaymentStatusPropertyTests
     }
 }
 
+// ── InMemoryInvoiceRepository ─────────────────────────────────────────────────
+// Simple in-memory store that returns the full invoice (with payments) for both
+// GetByIdAsync and GetByIdWithPaymentsAsync — simulating the fixed behaviour.
+
+internal class InMemoryInvoiceRepository : IInvoiceRepository
+{
+    private readonly List<Invoice> _store = new();
+
+    public Task AddAsync(Invoice invoice, CancellationToken cancellationToken = default)
+    {
+        _store.Add(invoice);
+        return Task.CompletedTask;
+    }
+
+    public Task<Invoice?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+        => Task.FromResult(_store.FirstOrDefault(i => i.Id == id));
+
+    public Task<Invoice?> GetByIdWithPaymentsAsync(Guid id, CancellationToken cancellationToken = default)
+        => Task.FromResult(_store.FirstOrDefault(i => i.Id == id));
+
+    public Task<IReadOnlyList<Invoice>> GetAllAsync(CancellationToken cancellationToken = default)
+        => Task.FromResult<IReadOnlyList<Invoice>>(_store.AsReadOnly());
+
+    public Task SaveChangesAsync(CancellationToken cancellationToken = default)
+        => Task.CompletedTask;
+
+    public Task<bool> CustomerExistsAsync(Guid customerId, CancellationToken cancellationToken = default)
+        => Task.FromResult(true);
+
+    public Task<PagedResult<Invoice>> GetPagedAsync(InvoiceFilter filter, CancellationToken ct = default)
+        => throw new NotImplementedException();
+
+    public Task<PagedResult<InvoiceSummaryDto>> GetPagedSummariesAsync(InvoiceFilter filter, CancellationToken ct = default)
+        => throw new NotImplementedException();
+
+    public Task<InvoiceDetailsDto?> GetDetailsByIdAsync(Guid id, CancellationToken ct = default)
+        => throw new NotImplementedException();
+}
+
 // ── BuggyInvoiceRepository ────────────────────────────────────────────────────
 // Simulates the unfixed RecordPaymentCommandHandler behaviour:
 // GetByIdWithPaymentsAsync delegates to GetByIdAsync, which returns the invoice
@@ -229,6 +269,15 @@ internal class BuggyInvoiceRepository : IInvoiceRepository
 
     public Task<bool> CustomerExistsAsync(Guid customerId, CancellationToken cancellationToken = default)
         => Task.FromResult(true);
+
+    public Task<PagedResult<Invoice>> GetPagedAsync(InvoiceFilter filter, CancellationToken ct = default)
+        => throw new NotImplementedException();
+
+    public Task<PagedResult<InvoiceSummaryDto>> GetPagedSummariesAsync(InvoiceFilter filter, CancellationToken ct = default)
+        => throw new NotImplementedException();
+
+    public Task<InvoiceDetailsDto?> GetDetailsByIdAsync(Guid id, CancellationToken ct = default)
+        => throw new NotImplementedException();
 
     /// <summary>
     /// Returns the full invoice (with payments) for post-handler status inspection.

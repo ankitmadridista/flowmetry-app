@@ -8,6 +8,7 @@ public class Invoice
     private readonly List<IDomainEvent> _domainEvents = new();
 
     public Guid Id { get; private set; }
+    public int InvoiceNumber { get; private set; }
     public Guid CustomerId { get; private set; }
     public decimal Amount { get; private set; }
     public DateOnly DueDate { get; private set; }

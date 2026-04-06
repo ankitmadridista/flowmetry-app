@@ -254,10 +254,12 @@ public class InvoiceEndpointsTests : IClassFixture<CustomWebApplicationFactory>
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
         var json = await response.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal(JsonValueKind.Array, json.ValueKind);
+        // Response is now a PagedResult envelope; items is the array
+        var items = json.GetProperty("items");
+        Assert.Equal(JsonValueKind.Array, items.ValueKind);
 
         // All returned invoices must have Status == "Overdue"
-        foreach (var item in json.EnumerateArray())
+        foreach (var item in items.EnumerateArray())
         {
             Assert.Equal("Overdue", item.GetProperty("status").GetString());
         }
@@ -274,8 +276,10 @@ public class InvoiceEndpointsTests : IClassFixture<CustomWebApplicationFactory>
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
         var json = await response.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal(JsonValueKind.Array, json.ValueKind);
-        Assert.True(json.GetArrayLength() >= 1);
+        // Response is now a PagedResult envelope; items is the array
+        var items = json.GetProperty("items");
+        Assert.Equal(JsonValueKind.Array, items.ValueKind);
+        Assert.True(items.GetArrayLength() >= 1);
     }
 
     // ── 12.5: Multi-payment cumulative status ────────────────────────────────

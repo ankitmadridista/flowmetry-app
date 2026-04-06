@@ -1,7 +1,9 @@
 using Flowmetry.Application.Common;
+using Flowmetry.Application.Invoices;
 using Flowmetry.Application.Invoices.Commands;
 using Flowmetry.Application.Invoices.Dtos;
 using Flowmetry.Application.Invoices.Queries;
+using Flowmetry.Domain;
 using MediatR;
 
 namespace Flowmetry.API.Endpoints;
@@ -66,14 +68,55 @@ public static class InvoiceEndpoints
         });
 
         // GET /api/invoices
-        group.MapGet("", async (bool? overdue, IMediator mediator) =>
+        group.MapGet("", async (
+            bool?     overdue,
+            Guid?     customerId,
+            string?   customerName,
+            string?   status,
+            DateOnly? dueDateFrom,
+            DateOnly? dueDateTo,
+            int?      page,
+            int?      pageSize,
+            string?   sortBy,
+            string?   sortDir,
+            IMediator mediator) =>
         {
-            var query = new GetOverdueInvoicesQuery(overdue ?? true);
-            var result = await mediator.Send(query);
+            // Parse status — overdue=true takes precedence
+            InvoiceStatus? parsedStatus = null;
+            if (overdue == true)
+                parsedStatus = InvoiceStatus.Overdue;
+            else if (status is not null)
+            {
+                if (!Enum.TryParse<InvoiceStatus>(status, ignoreCase: true, out var s))
+                    return Results.BadRequest(new { errors = new[] { $"'{status}' is not a valid status." } });
+                parsedStatus = s;
+            }
+
+            SortField parsedSortBy = SortField.DueDate;
+            if (sortBy is not null && !Enum.TryParse<SortField>(sortBy, ignoreCase: true, out parsedSortBy))
+                return Results.BadRequest(new { errors = new[] { $"'{sortBy}' is not a valid sortBy value." } });
+
+            SortDirection parsedSortDir = SortDirection.Asc;
+            if (sortDir is not null && !Enum.TryParse<SortDirection>(sortDir, ignoreCase: true, out parsedSortDir))
+                return Results.BadRequest(new { errors = new[] { $"'{sortDir}' is not a valid sortDir value." } });
+
+            var filter = new InvoiceFilter(
+                CustomerId:   customerId,
+                CustomerName: customerName,
+                Status:       parsedStatus,
+                DueDateFrom:  dueDateFrom,
+                DueDateTo:    dueDateTo,
+                Page:         page ?? 0,
+                PageSize:     pageSize ?? 25,
+                SortBy:       parsedSortBy,
+                SortDir:      parsedSortDir);
+
+            var result = await mediator.Send(new GetInvoicesQuery(filter));
             return result switch
             {
-                Result<IReadOnlyList<InvoiceSummaryDto>>.Success s => Results.Ok(s.Value),
-                _ => Results.StatusCode(500)
+                Result<PagedResult<InvoiceSummaryDto>>.Success s           => Results.Ok(s.Value),
+                Result<PagedResult<InvoiceSummaryDto>>.ValidationFailure f => Results.BadRequest(new { errors = f.Errors }),
+                _                                                           => Results.StatusCode(500)
             };
         });
 

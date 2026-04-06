@@ -11,21 +11,9 @@ public class GetInvoiceDetailsQueryHandler(IInvoiceRepository repository)
 {
     public async Task<Result<InvoiceDetailsDto>> Handle(GetInvoiceDetailsQuery request, CancellationToken cancellationToken)
     {
-        var invoice = await repository.GetByIdWithPaymentsAsync(request.InvoiceId, cancellationToken);
-        if (invoice is null)
+        var dto = await repository.GetDetailsByIdAsync(request.InvoiceId, cancellationToken);
+        if (dto is null)
             return new Result<InvoiceDetailsDto>.NotFound($"Invoice '{request.InvoiceId}' not found.");
-
-        var payments = invoice.Payments
-            .Select(p => new PaymentDto(p.Id, p.Amount, p.RecordedAt))
-            .ToList();
-
-        var dto = new InvoiceDetailsDto(
-            invoice.Id,
-            invoice.CustomerId,
-            invoice.Amount,
-            invoice.DueDate,
-            invoice.Status.ToString(),
-            payments);
 
         return new Result<InvoiceDetailsDto>.Success(dto);
     }
