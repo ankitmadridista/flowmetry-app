@@ -7,6 +7,13 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Disable config file watching — avoids hitting inotify limits on constrained
+// environments like Render's free tier. Config only needs to be read once at startup.
+builder.Configuration.Sources
+    .OfType<Microsoft.Extensions.Configuration.FileConfigurationSource>()
+    .ToList()
+    .ForEach(s => s.ReloadOnChange = false);
+
 // Add services to the container.
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
