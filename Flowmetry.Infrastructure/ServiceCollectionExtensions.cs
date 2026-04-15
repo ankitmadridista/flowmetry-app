@@ -5,12 +5,17 @@ using Flowmetry.Application.Reminders;
 using Flowmetry.Application.RiskScoring;
 using Flowmetry.Infrastructure.Events;
 using Flowmetry.Infrastructure.Events.Stubs;
+using Flowmetry.Infrastructure.Identity;
 using Flowmetry.Infrastructure.Persistence;
 using Flowmetry.Infrastructure.Projections;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 namespace Flowmetry.Infrastructure;
 
@@ -50,6 +55,47 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IReminderScheduler, LoggingReminderScheduler>();
         services.AddScoped<ICashflowProjectionService, EfCashflowProjectionService>();
         services.AddScoped<IAlertService, LoggingAlertService>();
+
+        // Identity
+        services.AddIdentity<AppUser, IdentityRole>(options =>
+        {
+            options.Password.RequireDigit = true;
+            options.Password.RequiredLength = 8;
+            options.Password.RequireUppercase = false;
+            options.Password.RequireNonAlphanumeric = false;
+        })
+        .AddEntityFrameworkStores<FlowmetryDbContext>()
+        .AddDefaultTokenProviders();
+
+        // JWT
+        var jwtSecret = configuration["JWT_SECRET"]
+            ?? Environment.GetEnvironmentVariable("JWT_SECRET")
+            ?? "dev-only-secret-not-for-production-use-32ch";
+        var jwtIssuer = configuration["JWT_ISSUER"] ?? "flowmetry";
+        var jwtAudience = configuration["JWT_AUDIENCE"] ?? "flowmetry";
+
+        services.AddSingleton(new JwtTokenService(jwtSecret, jwtIssuer, jwtAudience));
+
+        services.AddAuthentication(options =>
+        {
+            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        })
+        .AddJwtBearer(options =>
+        {
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = jwtIssuer,
+                ValidAudience = jwtAudience,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
+            };
+        });
+
+        services.AddAuthorization();
 
         return services;
     }

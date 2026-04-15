@@ -21,7 +21,7 @@ public static class RiskProfileEndpoints
                         Results.NotFound(new { message = n.Message }),
                     _ => Results.StatusCode(500)
                 };
-            });
+            }).RequireAuthorization();
 
         return app;
     }

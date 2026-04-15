@@ -115,7 +115,7 @@ public class InvoiceEndpointsTests : IClassFixture<CustomWebApplicationFactory>
     {
         _factory = factory;
         _factory.WithSeededData();
-        _client = factory.CreateClient();
+        _client = TestAuthHelper.CreateAuthenticatedClient(factory.CreateClient());
     }
 
     // ── 12.1: POST /api/invoices ──────────────────────────────────────────────

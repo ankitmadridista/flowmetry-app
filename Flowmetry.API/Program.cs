@@ -80,6 +80,8 @@ app.UseSwaggerUI(c =>
 });
 
 app.UseCors("AllowUI");
+app.UseAuthentication();
+app.UseAuthorization();
 
 // Auto-apply pending migrations on startup (safe for Render / single-instance deploys)
 // Skip for InMemory provider used in tests
@@ -91,6 +93,7 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
+app.MapAuthEndpoints();
 app.MapInvoiceEndpoints();
 app.MapReminderEndpoints();
 app.MapDashboardEndpoints();

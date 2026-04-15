@@ -10,7 +10,7 @@ public class DashboardEndpointsTests : IClassFixture<CustomWebApplicationFactory
 
     public DashboardEndpointsTests(CustomWebApplicationFactory factory)
     {
-        _client = factory.CreateClient();
+        _client = TestAuthHelper.CreateAuthenticatedClient(factory.CreateClient());
     }
 
     // 10.1: GET /api/dashboard/cashflow returns HTTP 200 with all five camelCase decimal fields

@@ -18,7 +18,7 @@ public static class DashboardEndpoints
                 Result<CashflowSummary>.Success s => Results.Ok(s.Value),
                 _ => Results.StatusCode(500)
             };
-        });
+        }).RequireAuthorization();
 
         return app;
     }

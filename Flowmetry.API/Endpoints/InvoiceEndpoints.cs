@@ -12,7 +12,7 @@ public static class InvoiceEndpoints
 {
     public static IEndpointRouteBuilder MapInvoiceEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/invoices");
+        var group = app.MapGroup("/api/invoices").RequireAuthorization();
 
         // POST /api/invoices
         group.MapPost("", async (CreateInvoiceRequest request, IMediator mediator) =>

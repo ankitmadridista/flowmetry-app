@@ -1,10 +1,13 @@
 using Flowmetry.Domain;
+using Flowmetry.Infrastructure.Identity;
 using Flowmetry.Infrastructure.Projections;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace Flowmetry.Infrastructure;
 
-public class FlowmetryDbContext(DbContextOptions<FlowmetryDbContext> options) : DbContext(options)
+public class FlowmetryDbContext(DbContextOptions<FlowmetryDbContext> options)
+    : IdentityDbContext<AppUser>(options)
 {
     public DbSet<Invoice> Invoices => Set<Invoice>();
     public DbSet<Customer> Customers => Set<Customer>();

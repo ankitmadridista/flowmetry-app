@@ -135,7 +135,7 @@ public class DomainEventDispatchIntegrationTests : IClassFixture<EventDispatchWe
     {
         _factory = factory;
         _factory.WithSeededData();
-        _client = factory.CreateClient();
+        _client = TestAuthHelper.CreateAuthenticatedClient(factory.CreateClient());
     }
 
     [Fact]
