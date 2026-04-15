@@ -6,7 +6,7 @@ Cashflow intelligence system for SMBs.
 
 - .NET 9 — Clean Architecture, CQRS via MediatR
 - PostgreSQL — Neon (serverless Postgres)
-- React + Vite — frontend ([flowmetry-ui](../flowmetry-ui/README.md))
+- React + Vite — frontend ([flowmetry-ui](https://github.com/ankitmadridista/flowmetry-ui/blob/main/README.md))
 
 ## Features
 
