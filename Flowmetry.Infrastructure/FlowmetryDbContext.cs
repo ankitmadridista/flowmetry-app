@@ -1,6 +1,7 @@
 using Flowmetry.Domain;
 using Flowmetry.Infrastructure.Identity;
 using Flowmetry.Infrastructure.Projections;
+using Flowmetry.Infrastructure.Security;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,6 +15,13 @@ public class FlowmetryDbContext(DbContextOptions<FlowmetryDbContext> options)
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<CashflowProjection> CashflowProjections => Set<CashflowProjection>();
     public DbSet<Reminder> Reminders => Set<Reminder>();
+
+    public DbSet<SecurityObject> SecurityObjects => Set<SecurityObject>();
+    public DbSet<SecurityOperation> SecurityOperations => Set<SecurityOperation>();
+    public DbSet<SecurityPermission> SecurityPermissions => Set<SecurityPermission>();
+    public DbSet<SecurityRole> SecurityRoles => Set<SecurityRole>();
+    public DbSet<SecurityRolePermission> SecurityRolePermissions => Set<SecurityRolePermission>();
+    public DbSet<SecurityRoleUser> SecurityRoleUsers => Set<SecurityRoleUser>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -67,6 +75,47 @@ public class FlowmetryDbContext(DbContextOptions<FlowmetryDbContext> options)
             builder.Property(r => r.ReminderType).HasConversion<string>();
             builder.Property(r => r.Status).HasConversion<string>();
             builder.HasIndex(r => new { r.Status, r.ScheduledAt });
+        });
+
+        modelBuilder.Entity<SecurityObject>(b =>
+        {
+            b.ToTable("security_objects");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Id).UseIdentityByDefaultColumn();
+            b.HasOne(x => x.Parent).WithMany().HasForeignKey(x => x.ParentId);
+        });
+
+        modelBuilder.Entity<SecurityOperation>(b =>
+        {
+            b.ToTable("security_operations");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Id).UseIdentityByDefaultColumn();
+        });
+
+        modelBuilder.Entity<SecurityPermission>(b =>
+        {
+            b.ToTable("security_permissions");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Id).UseIdentityByDefaultColumn();
+        });
+
+        modelBuilder.Entity<SecurityRole>(b =>
+        {
+            b.ToTable("security_roles");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Id).UseIdentityByDefaultColumn();
+        });
+
+        modelBuilder.Entity<SecurityRolePermission>(b =>
+        {
+            b.ToTable("security_role_permissions");
+            b.HasKey(x => new { x.RoleId, x.PermissionId });
+        });
+
+        modelBuilder.Entity<SecurityRoleUser>(b =>
+        {
+            b.ToTable("security_role_users");
+            b.HasKey(x => new { x.RoleId, x.UserId });
         });
     }
 }

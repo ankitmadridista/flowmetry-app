@@ -3,11 +3,13 @@ using Flowmetry.Application.Invoices;
 using Flowmetry.Application.Invoices.Services;
 using Flowmetry.Application.Reminders;
 using Flowmetry.Application.RiskScoring;
+using Flowmetry.Application.Security;
 using Flowmetry.Infrastructure.Events;
 using Flowmetry.Infrastructure.Events.Stubs;
 using Flowmetry.Infrastructure.Identity;
 using Flowmetry.Infrastructure.Persistence;
 using Flowmetry.Infrastructure.Projections;
+using Flowmetry.Infrastructure.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -55,6 +57,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IReminderScheduler, LoggingReminderScheduler>();
         services.AddScoped<ICashflowProjectionService, EfCashflowProjectionService>();
         services.AddScoped<IAlertService, LoggingAlertService>();
+        services.AddScoped<IPermissionService, PermissionService>();
 
         // Identity
         services.AddIdentity<AppUser, IdentityRole>(options =>

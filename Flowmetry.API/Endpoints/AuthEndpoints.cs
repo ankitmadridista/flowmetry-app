@@ -1,3 +1,4 @@
+using Flowmetry.Application.Security;
 using Flowmetry.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
 using System.Security.Claims;
@@ -67,6 +68,20 @@ public static class AuthEndpoints
             var displayName = principal.FindFirst("displayName")?.Value;
 
             return Results.Ok(new { id, email, displayName });
+        }).RequireAuthorization();
+
+        // GET /api/auth/permissions — returns the calling user's effective permissions
+        group.MapGet("permissions", async (
+            ClaimsPrincipal principal,
+            IPermissionService permissionService,
+            CancellationToken ct) =>
+        {
+            var userId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                      ?? principal.FindFirst("sub")?.Value
+                      ?? string.Empty;
+
+            var permissionsDto = await permissionService.GetUserPermissionsAsync(userId, ct);
+            return Results.Ok(permissionsDto);
         }).RequireAuthorization();
 
         return app;
