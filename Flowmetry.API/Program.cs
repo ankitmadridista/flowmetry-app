@@ -99,6 +99,7 @@ app.MapReminderEndpoints();
 app.MapDashboardEndpoints();
 app.MapRiskProfileEndpoints();
 app.MapCustomerEndpoints();
+app.MapSecurityAdminEndpoints();
 
 app.Run();
 

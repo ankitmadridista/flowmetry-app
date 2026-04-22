@@ -58,6 +58,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICashflowProjectionService, EfCashflowProjectionService>();
         services.AddScoped<IAlertService, LoggingAlertService>();
         services.AddScoped<IPermissionService, PermissionService>();
+        services.AddScoped<ISecurityAdminService, SecurityAdminService>();
 
         // Identity
         services.AddIdentity<AppUser, IdentityRole>(options =>
