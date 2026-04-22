@@ -1,0 +1,34 @@
+Here's a prioritised list of what to tackle next:
+
+1. User Management — Create & Invite Users
+Right now the Security Admin page can assign roles to existing users, but there's no way to create new users from the UI. You need a "Invite User" flow: an admin enters an email, the backend creates the account (or sends an invite email), and the user sets their password on first login. This is the most critical gap — RBAC is useless if you can't onboard users without direct DB access.
+
+2. Invoice Creation from the UI
+The invoice list page shows invoices but there's no "Create Invoice" button wired to a real customer selector. The CreateInvoiceModal exists but needs to be connected to a customer search/select so users can actually create invoices end-to-end without hitting the API directly.
+
+3. Refresh Token / Session Persistence
+Currently JWT tokens expire and the user gets silently signed out. You need a refresh token flow: store a long-lived refresh token (httpOnly cookie), and silently re-issue the access token before it expires. Without this, any user working for more than the token TTL gets kicked out mid-session.
+
+4. Audit Log
+Any RBAC system needs an audit trail. Every time a role is assigned/removed, a permission is changed, or a security object is toggled, that action should be logged with who did it and when. This is a backend table + a read-only Audit tab on the Security Admin page.
+
+5. Dashboard Enhancements
+The current dashboard shows 5 static metrics. Useful additions:
+
+Date range filter (last 30/90 days, custom range)
+Overdue invoices list inline (not just the total amount)
+Cashflow trend chart (monthly inflow/outflow over time)
+6. Email Notifications
+The reminder engine logs to console (LoggingNotificationService) but never actually sends emails. Wire up a real email provider (SendGrid, Resend, or SMTP) so payment reminders actually reach customers.
+
+7. Payments Module Visibility
+The PAYMENTS security object exists in the RBAC schema but there's no Payments page in the UI. Either build a standalone payments list page or remove the object from the seed data to avoid confusion.
+
+8. Reports Module
+Same situation as Payments — REPORTS is seeded as a security object but there's no Reports page. Either scaffold a basic reports page (export invoices to CSV, payment summary by date range) or clean up the orphaned permission.
+
+9. End-to-End / Integration Tests
+The backend has unit and property tests but no end-to-end tests covering the full HTTP stack with a real database. Adding a test project using WebApplicationFactory with a test Postgres container (Testcontainers) would catch regressions across the API surface.
+
+10. Error Boundary + Loading States Polish
+Several pages show a blank screen while permissions load (the PermissionRoute returns null during loading). A proper skeleton/loading state and a React error boundary would make the app feel more production-ready and prevent white-flash on navigation.
