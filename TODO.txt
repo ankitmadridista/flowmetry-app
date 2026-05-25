@@ -32,3 +32,16 @@ The backend has unit and property tests but no end-to-end tests covering the ful
 
 10. Error Boundary + Loading States Polish
 Several pages show a blank screen while permissions load (the PermissionRoute returns null during loading). A proper skeleton/loading state and a React error boundary would make the app feel more production-ready and prevent white-flash on navigation.
+
+
+
+==========================================
+🔵 Phase 4 – Dashboard
+Aggregations
+Reports
+🟣 Phase 5 – Reminders Engine
+Priority queue
+Background processing
+⚫ Phase 6 – Intelligence Layer
+Risk scoring
+AI features
