@@ -10,7 +10,7 @@ public static class CustomerEndpoints
 {
     public static IEndpointRouteBuilder MapCustomerEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/customers").RequireAuthorization();
+        var group = app.MapGroup("/api/customers").WithTags("Customers").RequireAuthorization();
 
         // POST /api/customers
         group.MapPost("", async (CreateCustomerRequest request, IMediator mediator) =>
