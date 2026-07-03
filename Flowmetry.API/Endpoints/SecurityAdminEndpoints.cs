@@ -7,7 +7,7 @@ public static class SecurityAdminEndpoints
 {
     public static IEndpointRouteBuilder MapSecurityAdminEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/security-admin").RequireAuthorization();
+        var group = app.MapGroup("/api/security-admin").WithTags("Security Admin").RequireAuthorization();
 
         // GET /api/security-admin/objects
         group.MapGet("objects", async (ClaimsPrincipal user, IPermissionService ps, ISecurityAdminService svc, CancellationToken ct) =>

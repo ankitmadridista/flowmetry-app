@@ -8,7 +8,7 @@ public static class ReminderEndpoints
 {
     public static IEndpointRouteBuilder MapReminderEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/invoices").RequireAuthorization();
+        var group = app.MapGroup("/api/invoices").WithTags("Invoices").RequireAuthorization();
 
         // GET /api/invoices/{invoiceId}/reminders
         group.MapGet("{invoiceId:guid}/reminders", async (Guid invoiceId, IMediator mediator) =>
