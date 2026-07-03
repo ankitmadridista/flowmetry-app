@@ -10,7 +10,7 @@
   <ItemGroup>
 	  <PackageReference Include="coverlet.collector" />
 	  <PackageReference Include="CsCheck" />
-	  <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+	  <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.17" />
 	  <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
 	  <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
 	  <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
