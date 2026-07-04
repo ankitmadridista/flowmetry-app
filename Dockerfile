@@ -4,6 +4,7 @@ WORKDIR /src
 
 # Copy solution and project files for layer caching
 COPY Flowmetry.sln ./
+COPY Directory.Packages.props ./
 COPY Flowmetry.API/Flowmetry.API.csproj Flowmetry.API/
 COPY Flowmetry.Application/Flowmetry.Application.csproj Flowmetry.Application/
 COPY Flowmetry.Infrastructure/Flowmetry.Infrastructure.csproj Flowmetry.Infrastructure/
