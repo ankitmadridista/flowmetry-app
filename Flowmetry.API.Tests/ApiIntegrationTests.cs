@@ -57,7 +57,7 @@ public class ApiIntegrationTests
         await using var factory = CreateFactory();
         var client = factory.CreateClient();
 
-        var request = new HttpRequestMessage(HttpMethod.Get, "/health");
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/health");
         request.Headers.Add("Origin", "http://localhost:5173");
 
         var response = await client.SendAsync(request);
