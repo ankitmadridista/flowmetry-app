@@ -10,7 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Disable config file watching — avoids hitting inotify limits on constrained
 // environments like Render's free tier. Config only needs to be read once at startup.
 builder.Configuration.Sources
-    .OfType<Microsoft.Extensions.Configuration.FileConfigurationSource>()
+    .OfType<FileConfigurationSource>()
     .ToList()
     .ForEach(s => s.ReloadOnChange = false);
 
@@ -92,7 +92,7 @@ using (var scope = app.Services.CreateScope())
         db.Database.Migrate();
 }
 
-app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
+app.MapGet("/api/health", () => Results.Ok(new { status = "healthy" }));
 app.MapAuthEndpoints();
 app.MapInvoiceEndpoints();
 app.MapReminderEndpoints();
