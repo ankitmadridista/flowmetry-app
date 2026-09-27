@@ -42,7 +42,7 @@ public class ApiIntegrationTests
         await using var factory = CreateFactory();
         var client = factory.CreateClient();
 
-        var response = await client.GetAsync("/health");
+        var response = await client.GetAsync("/api/health");
 
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
 
